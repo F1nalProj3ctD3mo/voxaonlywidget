@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HR Voice Assistant</title>
+<style>
+/* All your CSS exactly, shortened here for explanation - but in real file use full */
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f5f7fa;
+  margin: 0;
+  padding: 0;
+}
+
+/* Your floating button styles */
+.voice-assistant-widget { position: fixed; bottom: 30px; right: 30px; z-index: 10000; }
+.assistant-button { width:70px;height:70px;background:linear-gradient(135deg,#6B46C1 0%,#9333EA 50%,#C084FC 100%);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 25px rgba(107,70,193,0.4);transition:all .3s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;border:none;}
+.assistant-button:hover { transform: translateY(-2px) scale(1.05); box-shadow:0 12px 35px rgba(107,70,193,0.6);}
+.assistant-button:active { transform: translateY(0) scale(0.95);}
+.mic-icon { width:28px;height:28px;fill:white;}
+.assistant-button::before { content:'';position:absolute;top:0;left:0;right:0;bottom:0;border-radius:50%;background:linear-gradient(135deg,#6B46C1,#9333EA);opacity:0;animation:pulse 2s infinite;}
+@keyframes pulse { 0%{transform:scale(1);opacity:1;} 50%{transform:scale(1.2);opacity:.3;} 100%{transform:scale(1.4);opacity:0;} }
+
+/* Chat panel styles */
+.voice-chat-panel {position:absolute;bottom:85px;right:0;width:380px;background:linear-gradient(145deg,#F9FAFB 0%,#F3F4F6 100%);border-radius:20px;box-shadow:0 20px 40px rgba(0,0,0,0.3);transform:translateY(20px) scale(0.9);opacity:0;visibility:hidden;transition:all 0.4s;overflow:hidden;border:1px solid rgba(255,255,255,0.1);}
+.voice-chat-panel.active { transform: translateY(0) scale(1); opacity:1; visibility:visible; }
+.panel-header {background:linear-gradient(135deg,#F3E8FF 0%,#E9D5FF 100%);padding:20px;text-align:center;position:relative;}
+.panel-header::before {content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');pointer-events:none;}
+.support-text {color:#6B46C1;font-size:18px;font-weight:600;margin-bottom:8px;}
+.need-support {color:#4B5563;font-size:14px;font-weight:500;opacity:0.9;}
+.animated-circles {display:flex;justify-content:center;gap:4px;margin:15px 0;}
+.circle {width:12px;height:12px;border-radius:50%;animation:bounce 1.4s infinite ease-in-out both;}
+.circle:nth-child(1){background:#374151;animation-delay:-0.32s;}
+.circle:nth-child(2){background:#FFFFFF;border:1px solid #E5E7EB;animation-delay:-0.16s;}
+.circle:nth-child(3){background:#000;animation-delay:0s;}
+.circle:nth-child(4){background:#374151;animation-delay:0.16s;}
+.circle:nth-child(5){background:#FFFFFF;border:1px solid #E5E7EB;animation-delay:0.32s;}
+@keyframes bounce {0%,80%,100%{transform:scale(0);}40%{transform:scale(1);}}
+
+.mode-toggle {display:flex;background:#E5E7EB;border-radius:12px;padding:4px;margin-bottom:20px;}
+.mode-option {flex:1;padding:10px 16px;border:none;border-radius:8px;color:#6B7280;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.mode-option.active {color:#6B46C1;background:white;box-shadow:0 2px 4px rgba(0,0,0,0.1);}
+.voice-mode, .text-mode {display:none;}
+.voice-mode.active, .text-mode.active {display:block;}
+.start-voice-btn {width:100%;padding:16px 24px;background:linear-gradient(135deg,#F3E8FF 0%,#E9D5FF 100%);border:none;border-radius:14px;color:#6B46C1;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.3s;display:flex;align-items:center;justify-content:center;}
+.start-voice-btn:hover {transform:translateY(-2px);background:linear-gradient(135deg,#EDE9FE 0%,#DDD6FE 100%);}
+.chat-container {max-height:250px;overflow-y:auto;margin-bottom:15px;border-radius:12px;background:white;border:1px solid #E5E7EB;}
+.chat-messages {padding:15px;min-height:120px;display:flex;flex-direction:column;gap:10px;}
+.message {max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px;}
+.message.user {align-self:flex-end;background:#6B46C1;color:white;border-bottom-right-radius:4px;}
+.message.assistant {align-self:flex-start;background:#F3F4F6;color:#374151;border-bottom-left-radius:4px;}
+.typing-indicator {align-self:flex-start;padding:10px 14px;background:#F3F4F6;border-radius:12px;border-bottom-left-radius:4px;display:none;}
+.typing-dots {display:flex;gap:4px;}
+.typing-dot {width:6px;height:6px;border-radius:50%;background:#9CA3AF;animation:typingDot 1.4s infinite;}
+@keyframes typingDot {0%,80%,100%{transform:scale(0.8);opacity:.5;}40%{transform:scale(1);opacity:1;}}
+.input-container {display:flex;gap:8px;align-items:flex-end;}
+.text-input {flex:1;padding:12px 16px;border:2px solid #E5E7EB;border-radius:12px;font-size:14px;resize:none;min-height:44px;}
+.send-btn {width:44px;height:44px;background:#6B46C1;border:none;border-radius:12px;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.send-btn:hover {background:#553C9A;}
+.send-icon {width:16px;height:16px;fill:currentColor;}
+.close-btn {position:absolute;top:15px;right:15px;width:30px;height:30px;background:rgba(255,255,255,0.1);border:none;border-radius:50%;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.close-btn:hover {background:rgba(255,255,255,0.2);transform:rotate(90deg);}
+</style>
+</head>
+<body>
+
+<!-- Voice Assistant Widget -->
+<div class="voice-assistant-widget">
+  <button class="assistant-button" id="assistantBtn">
+    <svg class="mic-icon" viewBox="0 0 24 24"><path d="M12 2C10.34 2 9 3.34 9 5V11C9 12.66 10.34 14 12 14C13.66 14 15 12.66 15 11V5C15 3.34 13.66 2 12 2M19 11C19 15.4 15.4 19 11 19V21H13V23H11V23H9V21H11V19C6.6 19 3 15.4 3 11H5C5 14.3 7.7 17 11 17H13C16.3 17 19 14.3 19 11H19Z"/></svg>
+  </button>
+
+  <div class="voice-chat-panel" id="voiceChatPanel">
+    <div class="panel-header">
+      <button class="close-btn" id="closeBtn">×</button>
+      <div class="support-text">HR Assistant</div>
+      <div class="need-support">Need Assistance?</div>
+      <div class="animated-circles">
+        <div class="circle"></div><div class="circle"></div><div class="circle"></div><div class="circle"></div><div class="circle"></div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="mode-toggle">
+        <button class="mode-option active" id="voiceModeBtn">Voice</button>
+        <button class="mode-option" id="textModeBtn">Text</button>
+      </div>
+      <div class="voice-mode active" id="voiceMode">
+        <button class="start-voice-btn" id="startVoiceBtn">Start conversation</button>
+      </div>
+      <div class="text-mode" id="textMode">
+        <div class="chat-container">
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-dots">
+              <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+            </div>
+          </div>
+        </div>
+        <div class="input-container">
+          <textarea class="text-input" id="textInput" placeholder="Type your message..." rows="1"></textarea>
+          <button class="send-btn" id="sendBtn">
+            <svg class="send-icon" viewBox="0 0 24 24"><path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Load VAPI SDK -->
+<script src="https://cdn.jsdelivr.net/gh/VapiAI/html-script-tag@latest/dist/assets/index.js" defer async></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const assistantBtn = document.getElementById('assistantBtn');
+  const panel = document.getElementById('voiceChatPanel');
+  const closeBtn = document.getElementById('closeBtn');
+  const voiceModeBtn = document.getElementById('voiceModeBtn');
+  const textModeBtn = document.getElementById('textModeBtn');
+  const voiceMode = document.getElementById('voiceMode');
+  const textMode = document.getElementById('textMode');
+  const startVoiceBtn = document.getElementById('startVoiceBtn');
+  const sendBtn = document.getElementById('sendBtn');
+  const textInput = document.getElementById('textInput');
+  const chatMessages = document.getElementById('chatMessages');
+  const typingIndicator = document.getElementById('typingIndicator');
+
+  assistantBtn.addEventListener('click', () => panel.classList.toggle('active'));
+  closeBtn.addEventListener('click', () => panel.classList.remove('active'));
+  voiceModeBtn.addEventListener('click', () => switchMode('voice'));
+  textModeBtn.addEventListener('click', () => switchMode('text'));
+  startVoiceBtn.addEventListener('click', () => startVoiceChat());
+  sendBtn.addEventListener('click', () => sendMessage());
+  textInput.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+
+  function switchMode(mode) {
+    voiceModeBtn.classList.toggle('active', mode==='voice');
+    textModeBtn.classList.toggle('active', mode==='text');
+    voiceMode.classList.toggle('active', mode==='voice');
+    textMode.classList.toggle('active', mode==='text');
+  }
+
+  function startVoiceChat() {
+    startVoiceBtn.innerHTML = '🎙️ Listening...';
+    window.vapi.start({ assistantId: "d2069902-06df-429d-8477-cc5f0cd1b411" });
+  }
+
+  function sendMessage() {
+    const msg = textInput.value.trim();
+    if (!msg) return;
+    addMessage(msg, 'user');
+    textInput.value = '';
+    typingIndicator.style.display = 'block';
+    window.vapi.send({ type:'text', message: msg });
+  }
+
+  function addMessage(text, who) {
+    const div = document.createElement('div');
+    div.className = `message ${who}`;
+    div.textContent = text;
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  window.vapiSDK.run({
+    apiKey: "29bd19a4-ae9f-4013-b638-b527394b3ce9",
+    assistant: "d2069902-06df-429d-8477-cc5f0cd1b411",
+    config: { disableDefaultWidget: true }
+  });
+  window.vapi.on('speech-final', txt => { typingIndicator.style.display = 'none'; addMessage(txt, 'assistant'); });
+  window.vapi.on('text-response', txt => { typingIndicator.style.display = 'none'; addMessage(txt, 'assistant'); });
+});
+</script>
+</body>
+</html>
