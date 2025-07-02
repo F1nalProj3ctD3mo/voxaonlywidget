@@ -140,12 +140,8 @@ document.addEventListener('DOMContentLoaded', function() {
     voiceMode.classList.toggle('active', mode==='voice');
     textMode.classList.toggle('active', mode==='text');
   }
-
-  window.vapiSDK.run({
-    apiKey: "29bd19a4-ae9f-4013-b638-b527394b3ce9",
-    assistant: "d2069902-06df-429d-8477-cc5f0cd1b411",
-    config: { disableDefaultWidget: true }
-  });
+  
+  
   
   function startVoiceChat() {
   startVoiceBtn.innerHTML = '🎙️ Listening...';
@@ -175,6 +171,11 @@ document.addEventListener('DOMContentLoaded', function() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
+  window.vapiSDK.run({
+    apiKey: "29bd19a4-ae9f-4013-b638-b527394b3ce9",
+    assistant: "d2069902-06df-429d-8477-cc5f0cd1b411",
+    config: { disableDefaultWidget: true }
+  });
   
   window.vapi.on('speech-final', txt => { typingIndicator.style.display = 'none'; addMessage(txt, 'assistant'); });
   window.vapi.on('text-response', txt => { typingIndicator.style.display = 'none'; addMessage(txt, 'assistant'); });
